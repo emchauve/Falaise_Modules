@@ -2,6 +2,7 @@
 
 Reconstruction and Analysis modules for the SuperNEMO Experiment
 
+
 ## FLMANU
 
 #### FLMANU_CD
@@ -15,3 +16,8 @@ Basic inspection of "PTD" banks splitted in topologies of N electron(s) with N g
 #### FLMANU_Test
 
 Basic module doing a removal of zero calorimeter hit.
+
+
+## ZeroHitCleaner
+
+Short module removing events based on (customizable) number of hits in tracker annd calorimeter.

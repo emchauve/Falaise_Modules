@@ -1,0 +1,14 @@
+# - Configuration Metadata
+#@description Chain pipeline using a single custom module
+#@key_label   "name" 
+#@meta_label  "type"
+
+# - Custom modules
+[name="flreconstruct.plugins" type="flreconstruct::section"]
+plugins : string[1] = "ZeroHitCleaner"
+ZeroHitCleaner.directory : string = "@PROJECT_BINARY_DIR@"
+
+# - Pipeline configuration
+[name="pipeline" type="zero_hit_cleaner"]
+tracker_hit_threshold : integer = 0
+calorimeter_hit_threshold : integer = 1
