@@ -20,4 +20,4 @@ Basic module doing a removal of zero calorimeter hit.
 
 ## ZeroHitCleaner
 
-Short module removing events based on (customizable) number of hits in tracker annd calorimeter.
+Short module removing events based on (customizable) number of hits in tracker and calorimeter according to SD bank. Usefull to be run after flsimulate in order to reduce output file and speed up processing of reconstruction and analysis.
