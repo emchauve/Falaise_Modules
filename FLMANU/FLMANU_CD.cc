@@ -1,6 +1,5 @@
 #include <bayeux/dpp/chain_module.h>
 // #include <falaise/snemo/processing/module.h>
-
 #include <falaise/snemo/datamodels/event_header.h>
 #include <falaise/snemo/datamodels/calibrated_data.h>
 
@@ -100,7 +99,7 @@ DPP_MODULE_REGISTRATION_IMPLEMENT(FLMANU_CD, "FLMANU_CD")
 FLMANU_CD::FLMANU_CD()
 {
   //std::cout << "FLMANU_CD::FLMANU_CD()" << std::endl;
-  output_filename = "output.root";
+  output_filename = "flmanu-cd-output.root";
   this->_set_initialized(false);
 }
 
@@ -135,6 +134,8 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   
   // to allow branching vectors in tree
   // gROOT->ProcessLine("#include<vector>");
+
+  std::cout << "FLMANU_CD : output file = " << output_filename << std::endl;
   
   output_tree = new TTree ("output", "");
   output_tree->SetDirectory(0);
@@ -252,7 +253,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &workItem
 
 void FLMANU_CD::finalize()
 {
-  std::cout << "FLMANU_CD::finalize   : " << selected_entries << "/" << total_entries << " selected" << std::endl;
+  std::cout << "FLMANU_CD             : " << selected_entries << "/" << total_entries << " selected" << std::endl;
 
   TFile *output_file = new TFile(output_filename.data(), "RECREATE");
   output_file->cd(); output_tree->Write(); output_file->Close();

@@ -9,6 +9,10 @@ Reconstruction and Analysis modules for the SuperNEMO Experiment
 
 Basic inspection of "CD" bank (calorimeter) with ROOT output file.
 
+#### FLMANU_GENBV
+
+Basic inspection of GENBB generator and particle spectra from "SD" bank
+
 #### FLMANU_NeMg
 
 Basic inspection of "PTD" banks splitted in topologies of N electron(s) with N gamma(s) with ROOT output file.
