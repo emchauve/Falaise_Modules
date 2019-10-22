@@ -3,6 +3,7 @@
 #include <bayeux/mctools/simulated_data.h>
 
 #include <TFile.h>
+#include <TTree.h>
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TCanvas.h>
@@ -43,12 +44,38 @@ public:
     if (properties.has_key("output_filename"))
       output_filename = properties.fetch_string("output_filename");
   
-    // create ROOT histograms
-    
     std::cout << "FLMANU_GENBB : output file = " << output_filename << std::endl;
     
     outputFile = new TFile (output_filename.data(), "RECREATE");
-    
+
+    // ROOT tree
+
+    outputTree = new TTree ("genbb", "");
+
+    outputTree->Branch("weight", &outputEventWeight);
+
+    outputTree->Branch("x", &outputVertexX);
+    outputTree->Branch("y", &outputVertexY);
+    outputTree->Branch("z", &outputVertexZ);
+
+    outputParticleType = new std::vector<unsigned short>;
+    outputTree->Branch("type",   &outputParticleType);
+
+    outputParticleTime  = new std::vector<unsigned short>;
+    outputTree->Branch("time",   &outputParticleTime);
+
+    outputParticlePx = new std::vector<float>;
+    outputParticlePy = new std::vector<float>;
+    outputParticlePz = new std::vector<float>;
+    outputTree->Branch("px", &outputParticlePx);
+    outputTree->Branch("py", &outputParticlePy);
+    outputTree->Branch("pz", &outputParticlePz);
+
+    outputParticleEnergy = new std::vector<float>;
+    outputTree->Branch("energy", &outputParticleEnergy);
+
+    // ROOT histograms 
+
     weightSpectrum   = new TH1F ("weight_spectrum", "event weight", 1000, 0, 1);
       
     gammaSpectrum    = new TH1F ("gamma_energy", "#gamma spectrum;Energy (MeV);",     binSpectrum, minSpectrum, maxSpectrum);
@@ -66,9 +93,9 @@ public:
  
   void finalize ()
   {
-    TFile *outputFile = new TFile (output_filename.data(), "RECREATE");
-
     outputFile->cd();
+
+    outputTree->Write();
 
     weightSpectrum->Write();
     
@@ -94,10 +121,26 @@ public:
 
     // GENBB weight
     
+    outputEventWeight = primaryEvent.get_genbb_weight();
     weightSpectrum->Fill(primaryEvent.get_genbb_weight());
     
-    // kinetic energy for each particle
-    
+    // GENBB vertex
+
+    const geomtools::vector_3d & primaryVertex = simulatedData.get_vertex();
+
+    outputVertexX = primaryVertex.x()/CLHEP::mm;
+    outputVertexY = primaryVertex.y()/CLHEP::mm;
+    outputVertexZ = primaryVertex.z()/CLHEP::mm;
+
+    // GENBB particles
+
+    outputParticleType->clear();
+    outputParticleTime->clear();
+    outputParticlePx->clear();
+    outputParticlePy->clear();
+    outputParticlePz->clear();
+    outputParticleEnergy->clear();
+
     float totalKineticEnergy = 0;
     
     auto & primaryParticles =  	primaryEvent.get_particles();
@@ -106,7 +149,14 @@ public:
       {
     	float kineticEnergy = primaryParticle.get_kinetic_energy();
     	totalKineticEnergy += kineticEnergy;
-	
+
+        outputParticleType->push_back   ( primaryParticle.get_type() );
+	outputParticleTime->push_back   ( primaryParticle.get_time() );
+        outputParticlePx->push_back     ( primaryParticle.get_momentum()[0] );
+        outputParticlePy->push_back     ( primaryParticle.get_momentum()[1] );
+	outputParticlePz->push_back     ( primaryParticle.get_momentum()[2] );
+        outputParticleEnergy->push_back ( primaryParticle.get_kinetic_energy() );
+
     	switch (primaryParticle.get_type())
     	  {
     	  case genbb::primary_particle::ELECTRON :
@@ -132,6 +182,8 @@ public:
 
     totalSpectrum->Fill(totalKineticEnergy);
     
+    outputTree->Fill();
+
     // // vertex
 
     // const geomtools::vector_3d & primaryVertex = simulatedData.get_vertex();
@@ -159,6 +211,21 @@ private:
   float maxSpectrum;
   
   TFile *outputFile;
+
+  TTree *outputTree;
+
+  float outputVertexX;
+  float outputVertexY;
+  float outputVertexZ;
+
+  float outputEventWeight;
+
+  std::vector<unsigned short> *outputParticleType;
+  std::vector<unsigned short> *outputParticleTime;
+  std::vector<float>          *outputParticlePx;
+  std::vector<float>          *outputParticlePy;
+  std::vector<float>          *outputParticlePz;
+  std::vector<float>          *outputParticleEnergy;
 
   TH1F *weightSpectrum;
   
