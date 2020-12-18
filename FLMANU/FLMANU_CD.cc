@@ -209,7 +209,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   const snemo::datamodel::calibrated_data & CD = event.get<snemo::datamodel::calibrated_data>("CD");
 
-  for (const auto & calo_hit : CD.calibrated_calorimeter_hits())
+  for (const auto & calo_hit : CD.calorimeter_hits())
     {
       short an_om_num = geomid_to_omnum(calo_hit->get_geom_id());
 

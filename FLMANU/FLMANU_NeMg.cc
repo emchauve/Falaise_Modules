@@ -310,7 +310,7 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
   energy_g0_true.clear();
 
   const snemo::datamodel::calibrated_data & CD = event.get<snemo::datamodel::calibrated_data>("CD");
-  if (CD.calibrated_calorimeter_hits().size() == 0) return PROCESS_STOP;
+  if (CD.calorimeter_hits().size() == 0) return PROCESS_STOP;
 
   const snemo::datamodel::particle_track_data &PTD = event.get<snemo::datamodel::particle_track_data>("PTD");
   // if (PTD.get_number_of_particles() == 0) return PROCESS_STOP;
@@ -367,12 +367,17 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
   
   std::vector<std::string> hit_categories;
   SD.get_step_hits_categories(hit_categories, mctools::simulated_data::HIT_CATEGORY_TYPE_PUBLIC);
-  
-  for (int part=0; part<PTD.get_number_of_particles(); ++part) {
 
-    const snemo::datamodel::particle_track &part_track = PTD.get_particle(part);
+  int part = -1;
 
-    const snemo::datamodel::calibrated_calorimeter_hit::collection_type &part_hits = part_track.get_associated_calorimeter_hits();
+  for (const datatools::handle<snemo::datamodel::particle_track> &part_track_handle : PTD.particles()) {
+    
+    ++part;
+
+    const snemo::datamodel::particle_track &part_track = part_track_handle.get();
+
+    const std::vector<datatools::handle<snemo::datamodel::calibrated_calorimeter_hit>> &part_hits = part_track.get_associated_calorimeter_hits();
+
     const snemo::datamodel::particle_track::vertex_collection_type &part_vertices = part_track.get_vertices();
 
     // require 1 associated calorimeter hit per track
@@ -577,7 +582,7 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
   energy_g_true.clear();
   time_g_true.clear();
 
-  const snemo::datamodel::calibrated_calorimeter_hit::collection_type &phits = PTD.get_non_associated_calorimeters();
+  const std::vector<datatools::handle<snemo::datamodel::calibrated_calorimeter_hit>> &phits = PTD.isolatedCalorimeters();
   // printf("[%06lld] %d unassociated hits\n", total_entries-1, phits.size());
 
   for (int gamma=0; gamma<phits.size(); ++gamma) {
