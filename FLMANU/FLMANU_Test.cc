@@ -55,10 +55,9 @@ dpp::chain_module::process_status FLMANU_Test::process (datatools::things &event
   if (simulated_data.has_step_hits("gveto"))
     calorimeter_hit += simulated_data.get_number_of_step_hits("gveto");
   
-  if (calorimeter_hit > 0) PROCESS_OK;
+  if (calorimeter_hit > 0) return PROCESS_OK;
 
-  else return PROCESS_OK;
-  
+  else return PROCESS_STOP;
 }
 
 void FLMANU_Test::finalize()
