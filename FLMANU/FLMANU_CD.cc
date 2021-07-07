@@ -25,6 +25,19 @@ uint32_t geomid_to_omnum (const geomtools::geom_id &geomid)
     return 520 + 128 + geomid.get(1)*2*16 + geomid.get(2)*16 + geomid.get(3);
   default: return -1;}
 }
+
+
+// uint32_t geomid_to_cellnum (const geomtools::geom_id &geomid)
+// {
+//   switch (geomid.get_type()) {
+//   case 1302: // mwall
+//     return geomid.get(1)*20*13 + geomid.get(2)*13 + geomid.get(3);
+//   case 1232: // xwall
+//     return 520 + geomid.get(1)*2*2*16 + geomid.get(2)*2*16 + geomid.get(3)*16 + geomid.get(4);
+//   case 1252: // gveto
+//     return 520 + 128 + geomid.get(1)*2*16 + geomid.get(2)*16 + geomid.get(3);
+//   default: return -1;}
+// }
   
 //               geomid --> om_num
 //
@@ -90,6 +103,17 @@ private:
   std::vector<float> energy_bcu_true;
   std::vector<float> time_true;
   std::vector<short> nhit_true;
+
+  //
+
+  std::vector<unsigned short> tracker_cell_num;
+
+  std::vector<float> tracker_r;
+  std::vector<float> tracker_z;
+  std::vector<float> tracker_anode_time;
+  std::vector<float> tracker_delayed_time;
+
+  //
  
   bool mw_only;
   bool mw8_only;
@@ -173,6 +197,13 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   output_tree->Branch("time_true",      &time_true);
   output_tree->Branch("nhit_true",      &nhit_true);
 
+
+  output_tree->Branch("tracker_cell_num",     &tracker_cell_num);
+  output_tree->Branch("tracker_r",            &tracker_r);
+  output_tree->Branch("tracker_z",            &tracker_z);
+  output_tree->Branch("tracker_anode_time",   &tracker_anode_time);
+  output_tree->Branch("tracker_delayed_time", &tracker_delayed_time);
+
   this->_set_initialized(true);
 }
 
@@ -180,8 +211,11 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 {
   // std::cout << "FLMANU_CD::process()" << std::endl;
 
-  int nhit_sd = 0;
-  int nhit_cd = 0;
+  int nhit_calo_sd = 0;
+  int nhit_calo_cd = 0;
+
+  int nhit_tracker_sd = 0;
+  int nhit_tracker_cd = 0;
 
   event_id = total_entries++;
 
@@ -239,10 +273,11 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
     }
   
   for (int om=0; om<712; om++)
-    if (tmp_energy_true[om] > 0) nhit_sd++;
+    if (tmp_energy_true[om] > 0) nhit_calo_sd++;
 
-  if (nhit_sd <= 0)
-    return dpp::base_module::PROCESS_STOP;
+  // if (nhit_calo_sd <= 0)
+  //   return dpp::base_module::PROCESS_STOP;
+
 
   ////////
   // CD //
@@ -299,7 +334,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
     }
   
   for (int om=0; om<712; om++)
-    if (tmp_energy[om] > 0) nhit_cd++;
+    if (tmp_energy[om] > 0) nhit_calo_cd++;
   
   // flag.clear();
   om_num.clear();
@@ -323,7 +358,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
   time_true.clear();
   nhit_true.clear();
 
-  for (int om=0; om<712; om++)
+  for (unsigned short om=0; om<712; om++)
     {
       if (tmp_energy_true[om] <= 0)
 	continue;
@@ -352,6 +387,63 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
       nhit_true.push_back(tmp_nhit_true[om]);
     }
   
+  /////////////////////////////
+  // calibrated tracker hits //
+  /////////////////////////////
+
+  float tmp_tracker_r[2034];
+  float tmp_tracker_z[2034];
+  float tmp_tracker_anode_time[2034];
+  float tmp_tracker_delayed_time[2034];
+
+  memset(tmp_tracker_r,            0, 2034*sizeof(float));
+  memset(tmp_tracker_z,            0, 2034*sizeof(float));
+  memset(tmp_tracker_anode_time,   0, 2034*sizeof(float));
+  memset(tmp_tracker_delayed_time, 0, 2034*sizeof(float));
+
+  for (const auto & tracker_hit : CD.tracker_hits())
+    {
+      // short a_cell_num = geomid_to_cellnum(hit->get_geom_id());
+
+      unsigned short a_cell_num = 9 * 113 * tracker_hit->get_side();
+      a_cell_num += 9 * tracker_hit->get_row();
+      a_cell_num += tracker_hit->get_layer();
+
+      if (a_cell_num >= 2034)
+	printf("cell num = %4d for cell %d/%d/%03d\n", a_cell_num, tracker_hit->get_side(), tracker_hit->get_row(), tracker_hit->get_layer());
+
+      tmp_tracker_r[a_cell_num] = tracker_hit->get_r();
+      tmp_tracker_z[a_cell_num] = tracker_hit->get_z();
+      tmp_tracker_anode_time[a_cell_num] = tracker_hit->get_anode_time();
+      tmp_tracker_delayed_time[a_cell_num] = tracker_hit->get_delayed_time();
+    }
+
+  //
+
+  tracker_cell_num.clear();
+
+  tracker_r.clear();
+  tracker_z.clear();
+  tracker_anode_time.clear();
+  tracker_delayed_time.clear();
+
+  for (unsigned short cell=0; cell<2034; cell++)
+    {
+      if (tmp_tracker_r[cell] == 0)
+	continue;
+
+      tracker_cell_num.push_back(cell);
+
+      tracker_r.push_back(tmp_tracker_r[cell]);
+      tracker_z.push_back(tmp_tracker_z[cell]);
+      tracker_anode_time.push_back(tmp_tracker_anode_time[cell]);
+      tracker_delayed_time.push_back(tmp_tracker_delayed_time[cell]);
+
+      nhit_tracker_cd++;
+    }
+
+  /////////////////////////////
+
   output_tree->Fill();
   ++selected_entries;
 
