@@ -122,6 +122,7 @@ private:
 
   std::string output_filename;
 
+  TFile *output_file;
   TTree *output_tree;
 };
 
@@ -168,6 +169,8 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   // gROOT->ProcessLine("#include<vector>");
   
   std::cout << "FLMANU_CD::initialize : output_filename = " << output_filename << std::endl;
+
+  output_file = new TFile(output_filename.data(), "RECREATE");
 
   output_tree = new TTree ("output", "");
   output_tree->SetDirectory(0);
@@ -455,6 +458,7 @@ void FLMANU_CD::finalize()
 {
   std::cout << "FLMANU_CD::finalize   : " << selected_entries << "/" << total_entries << " selected" << std::endl;
   
-  TFile *output_file = new TFile(output_filename.data(), "RECREATE");
-  output_file->cd(); output_tree->Write(); output_file->Close();
+  output_file->cd();
+  output_tree->Write();
+  output_file->Close();
 }
