@@ -193,13 +193,12 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   output_tree->Branch("time",                  &time);
   // output_tree->Branch("sigma_time",      &sigma_time);
 
-  output_tree->Branch("energy_true",  &energy_true);
-  output_tree->Branch("energy_u_true",  &energy_u_true);
-  output_tree->Branch("energy_bc_true",  &energy_bc_true);
-  output_tree->Branch("energy_bcu_true",  &energy_bcu_true);
-  output_tree->Branch("time_true",      &time_true);
-  output_tree->Branch("nhit_true",      &nhit_true);
-
+  // output_tree->Branch("energy_true",  &energy_true);
+  // output_tree->Branch("energy_u_true",  &energy_u_true);
+  // output_tree->Branch("energy_bc_true",  &energy_bc_true);
+  // output_tree->Branch("energy_bcu_true",  &energy_bcu_true);
+  // output_tree->Branch("time_true",      &time_true);
+  // output_tree->Branch("nhit_true",      &nhit_true);
 
   output_tree->Branch("tracker_cell_num",     &tracker_cell_num);
   output_tree->Branch("tracker_r",            &tracker_r);
@@ -244,6 +243,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   std::vector<std::string> hit_categories;
   hit_categories.push_back("calo");
+
   if (!(mw_only || mw8_only))
     {
       hit_categories.push_back("xcalo");
@@ -257,7 +257,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
       for (auto & a_step_hit : SD.get_step_hits(hit_category))
 	{
-	  short an_om_num = geomid_to_omnum(a_step_hit->get_geom_id());
+	  unsigned short an_om_num = geomid_to_omnum(a_step_hit->get_geom_id());
 
 	  if (an_om_num >= 712) {
 	    printf("*** om_num (sd) = %d\n", an_om_num);
@@ -271,7 +271,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 	  
 	  tmp_energy_true[an_om_num] += a_step_hit->get_energy_deposit();
 	  
-	  tmp_nhit_true[an_om_num];
+	  tmp_nhit_true[an_om_num]++;
 	}
     }
   
@@ -306,7 +306,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   for (const auto & calo_hit : CD.calorimeter_hits())
     {
-      short an_om_num = geomid_to_omnum(calo_hit->get_geom_id());
+      unsigned short an_om_num = geomid_to_omnum(calo_hit->get_geom_id());
 
       if (an_om_num >= 712) {
 	printf("*** om_num (cd) = %d\n", an_om_num);
@@ -447,8 +447,11 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   /////////////////////////////
 
-  output_tree->Fill();
-  ++selected_entries;
+  // if ((nhit_calo_cd != 0) || (nhit_tracker_cd != 0))
+  //   {
+      output_tree->Fill();
+      ++selected_entries;
+    // }
 
   return dpp::base_module::PROCESS_SUCCESS;
 }

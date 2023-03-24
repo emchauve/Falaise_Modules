@@ -8,4 +8,6 @@ FLMANU.directory : string = "@PROJECT_BINARY_DIR@"
 
 [name="pipeline" type="FLMANU_CD"]
 output_filename : string = "flmanu-cd-output.root"
-min_hit : integer = 1
+mw_only : boolean = false
+mw8_only : boolean = false
+energy_cut : real = 0.1
