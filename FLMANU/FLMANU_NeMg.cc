@@ -103,6 +103,7 @@ private:
   std::vector<unsigned short> geomid_e;
   std::vector<float>          energy_e;
   std::vector<float>    sigma_energy_e;
+  std::vector<float>          energy_bcu_e;
   std::vector<float>            time_e;
   std::vector<float>      sigma_time_e;
   std::vector<float>     time_th_int_e;
@@ -133,6 +134,7 @@ private:
   std::vector<unsigned short> geomid_g;
   std::vector<float>          energy_g;
   std::vector<float>    sigma_energy_g;
+  std::vector<float>          energy_bcu_g;
   std::vector<float>            time_g;
   std::vector<float>      sigma_time_g;
 
@@ -225,6 +227,7 @@ void FLMANU_NeMg::initialize(const datatools::properties  &myConfig,
   output_tree->Branch("geomid_e",              &geomid_e);
   output_tree->Branch("energy_e",              &energy_e);
   output_tree->Branch("sigma_energy_e",  &sigma_energy_e);
+  output_tree->Branch("energy_bcu_e",      &energy_bcu_e);
   output_tree->Branch("time_e",                  &time_e);
   output_tree->Branch("sigma_time_e",      &sigma_time_e);
   // output_tree->Branch("time_th_int_e",    &time_th_int_e);
@@ -250,6 +253,7 @@ void FLMANU_NeMg::initialize(const datatools::properties  &myConfig,
   output_tree->Branch("geomid_g",              &geomid_g);
   output_tree->Branch("energy_g",              &energy_g);
   output_tree->Branch("sigma_energy_g",  &sigma_energy_g);
+  output_tree->Branch("energy_bcu_g",      &energy_bcu_g);
   output_tree->Branch("time_g",                  &time_g);
   output_tree->Branch("sigma_time_g",      &sigma_time_g);
   output_tree->Branch("energy_g_true",         &energy_g_true);
@@ -286,6 +290,7 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
   geomid_e.clear();
   energy_e.clear();
   sigma_energy_e.clear();
+  energy_bcu_e.clear();
   time_e.clear();
   sigma_time_e.clear();
   track_length_e.clear();
@@ -452,6 +457,8 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
     float       _energy_e_ = part_hits[0].get().get_energy();
     float _sigma_energy_e_ = part_hits[0].get().get_sigma_energy() * 2.35482;
 
+    float   _energy_bcu_e_ = part_hits[0].get().get_auxiliaries().fetch_real("edep_bcu");
+
     float         _time_e_ = part_hits[0].get().get_time();
     float   _sigma_time_e_ = part_hits[0].get().get_sigma_time();
 
@@ -540,6 +547,8 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
     energy_e.push_back(_energy_e_);
     sigma_energy_e.push_back(_sigma_energy_e_);
 
+    energy_bcu_e.push_back(_energy_bcu_e_);
+
     time_e.push_back(_time_e_);
     sigma_time_e.push_back(_sigma_time_e_);
 
@@ -576,6 +585,7 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
   geomid_g.clear();
   energy_g.clear();
   sigma_energy_g.clear();
+  energy_bcu_g.clear();
   time_g.clear();
   sigma_time_g.clear();
 
@@ -663,6 +673,8 @@ dpp::chain_module::process_status FLMANU_NeMg::process(datatools::things &event)
 
     energy_g.push_back(phits[gamma].get().get_energy());
     sigma_energy_g.push_back(phits[gamma].get().get_sigma_energy() * 2.35482);
+
+    energy_bcu_g.push_back(phits[gamma].get().get_auxiliaries().fetch_real("edep_bcu"));
 
     time_g.push_back(phits[gamma].get().get_time());
     sigma_time_g.push_back(phits[gamma].get().get_sigma_time());
