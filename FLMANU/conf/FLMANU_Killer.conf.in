@@ -1,0 +1,11 @@
+#@description pipeline using MNL library
+#@key_label  "name"
+#@meta_label "type"
+
+[name="flreconstruct.plugins" type="flreconstruct::section"]
+plugins : string[1] = "FLMANU"
+FLMANU.directory : string = "@PROJECT_BINARY_DIR@"
+
+[name="pipeline" type="FLMANU_Killer"]
+kill_all_cd : boolean = true
+keep_area0_cd : boolean = true
