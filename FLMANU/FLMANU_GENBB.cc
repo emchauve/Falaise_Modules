@@ -52,27 +52,29 @@ public:
 
     outputTree = new TTree ("genbb", "");
 
-    outputTree->Branch("weight", &outputEventWeight);
+    outputTree->Branch("time", &outputTime);
 
     outputTree->Branch("x", &outputVertexX);
     outputTree->Branch("y", &outputVertexY);
     outputTree->Branch("z", &outputVertexZ);
 
-    outputParticleType = new std::vector<unsigned short>;
-    outputTree->Branch("type",   &outputParticleType);
+    outputTree->Branch("weight", &outputEventWeight);
 
-    outputParticleTime  = new std::vector<unsigned short>;
-    outputTree->Branch("time",   &outputParticleTime);
+    outputParticleType = new std::vector<unsigned short>;
+    outputTree->Branch("particle.type",   &outputParticleType);
+
+    outputParticleTime  = new std::vector<double>;
+    outputTree->Branch("particle.time",   &outputParticleTime);
 
     outputParticlePx = new std::vector<float>;
     outputParticlePy = new std::vector<float>;
     outputParticlePz = new std::vector<float>;
-    outputTree->Branch("px", &outputParticlePx);
-    outputTree->Branch("py", &outputParticlePy);
-    outputTree->Branch("pz", &outputParticlePz);
+    outputTree->Branch("particle.px", &outputParticlePx);
+    outputTree->Branch("particle.py", &outputParticlePy);
+    outputTree->Branch("particle.pz", &outputParticlePz);
 
     outputParticleEnergy = new std::vector<float>;
-    outputTree->Branch("energy", &outputParticleEnergy);
+    outputTree->Branch("particle.energy", &outputParticleEnergy);
 
     // ROOT histograms 
 
@@ -214,6 +216,8 @@ private:
 
   TTree *outputTree;
 
+  double outputTime;
+
   float outputVertexX;
   float outputVertexY;
   float outputVertexZ;
@@ -221,7 +225,7 @@ private:
   float outputEventWeight;
 
   std::vector<unsigned short> *outputParticleType;
-  std::vector<unsigned short> *outputParticleTime;
+  std::vector<double>         *outputParticleTime;
   std::vector<float>          *outputParticlePx;
   std::vector<float>          *outputParticlePy;
   std::vector<float>          *outputParticlePz;
