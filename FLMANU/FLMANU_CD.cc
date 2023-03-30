@@ -120,6 +120,9 @@ private:
 
   float energy_cut;
 
+  int nhit_calo_min;
+  int nhit_tracker_min;
+
   std::string output_filename;
 
   TFile *output_file;
@@ -156,6 +159,14 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   if (myConfig.has_key("energy_cut"))
     energy_cut = myConfig.fetch_real("energy_cut");
   else energy_cut = 0;
+
+  if (myConfig.has_key("nhit_calo_min"))
+    nhit_calo_min = myConfig.fetch_integer("nhit_calo_min");
+  else nhit_calo_min = 0;
+
+  if (myConfig.has_key("nhit_tracker_min"))
+    nhit_tracker_min = myConfig.fetch_integer("nhit_tracker_min");
+  else nhit_tracker_min = 0;
 
   if (myConfig.has_key("output_filename"))
     output_filename = myConfig.fetch_string("output_filename");
@@ -447,11 +458,11 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   /////////////////////////////
 
-  // if ((nhit_calo_cd != 0) || (nhit_tracker_cd != 0))
-  //   {
+  if ((nhit_calo_min >= nhit_calo_min) && (nhit_tracker_min >= nhit_tracker_min))
+    {
       output_tree->Fill();
       ++selected_entries;
-    // }
+    }
 
   return dpp::base_module::PROCESS_SUCCESS;
 }

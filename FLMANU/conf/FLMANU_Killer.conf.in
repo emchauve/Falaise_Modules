@@ -7,5 +7,10 @@ plugins : string[1] = "FLMANU"
 FLMANU.directory : string = "@PROJECT_BINARY_DIR@"
 
 [name="pipeline" type="FLMANU_Killer"]
-kill_all_cd : boolean = true
-keep_area0_cd : boolean = true
+# kill_all_cd : boolean = true
+# keep_area0_cd : boolean = true
+
+dead_om_num : integer[10] =  12 74 80 98 119 136 146  318 369 461
+
+dead_cell_num : integer[47] = 10 19 27 39 81 99 189 507 513 575 630 679 701 756 782 783 802 846 847 848 849 850 851 852 853 854 912 \
+	      	      	1305 1448 1676 1734 1739 1778 1838 1854 1855 1856 1857 1858 1859 1860 1861 1862 1916 1921 1988 2007 
