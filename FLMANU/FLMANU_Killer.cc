@@ -39,6 +39,28 @@ void FLMANU_Killer::initialize(const datatools::properties  &myConfig,
 			      datatools::service_manager   &/*&flServices*/,
 			      dpp::module_handle_dict_type &/*moduleDict*/)
 {
+  if (myConfig.has_key("dead_om_num"))
+    {
+      std::vector<int> dead_om_num_v;
+      myConfig.fetch("dead_om_num", dead_om_num_v);
+
+      memset(om_num_to_kill, false, 712*sizeof(bool));
+
+      for (int dead_om_num : dead_om_num_v)
+	om_num_to_kill[dead_om_num] = true;
+    }
+
+  if (myConfig.has_key("dead_cell_num"))
+    {
+      std::vector<int> dead_cell_num_v;
+      myConfig.fetch("dead_cell_num", dead_cell_num_v);
+
+      memset(cell_num_to_kill, false, 2034*sizeof(bool));
+
+      for (int dead_cell_num : dead_cell_num_v)
+	cell_num_to_kill[dead_cell_num] = true;
+    }
+
   if (myConfig.has_key("kill_all_cd"))
     {
       bool kill = myConfig.fetch_boolean("kill_all_cd");
