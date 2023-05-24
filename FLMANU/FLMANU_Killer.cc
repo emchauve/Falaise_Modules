@@ -39,28 +39,6 @@ void FLMANU_Killer::initialize(const datatools::properties  &myConfig,
 			      datatools::service_manager   &/*&flServices*/,
 			      dpp::module_handle_dict_type &/*moduleDict*/)
 {
-  if (myConfig.has_key("dead_om_num"))
-    {
-      std::vector<int> dead_om_num_v;
-      myConfig.fetch("dead_om_num", dead_om_num_v);
-
-      memset(om_num_to_kill, false, 712*sizeof(bool));
-
-      for (int dead_om_num : dead_om_num_v)
-	om_num_to_kill[dead_om_num] = true;
-    }
-
-  if (myConfig.has_key("dead_cell_num"))
-    {
-      std::vector<int> dead_cell_num_v;
-      myConfig.fetch("dead_cell_num", dead_cell_num_v);
-
-      memset(cell_num_to_kill, false, 2034*sizeof(bool));
-
-      for (int dead_cell_num : dead_cell_num_v)
-	cell_num_to_kill[dead_cell_num] = true;
-    }
-
   if (myConfig.has_key("kill_all_cd"))
     {
       bool kill = myConfig.fetch_boolean("kill_all_cd");
@@ -93,29 +71,63 @@ void FLMANU_Killer::initialize(const datatools::properties  &myConfig,
 		om_num_to_kill[520+side*64+wall*32+column*16+row] = false;
 	}
     }
-    
+
+  if (myConfig.has_key("dead_om_num"))
+    {
+      std::vector<int> dead_om_num_v;
+      myConfig.fetch("dead_om_num", dead_om_num_v);
+
+      memset(om_num_to_kill, false, 712*sizeof(bool));
+
+      printf("-> %zd dead OM: ", dead_om_num_v.size());
+
+      for (int dead_om_num : dead_om_num_v) {
+	om_num_to_kill[dead_om_num] = true;
+	printf("%d ", dead_om_num);}
+
+      printf("\n");
+    }
+
+  if (myConfig.has_key("dead_cell_num"))
+    {
+      std::vector<int> dead_cell_num_v;
+      myConfig.fetch("dead_cell_num", dead_cell_num_v);
+
+      memset(cell_num_to_kill, false, 2034*sizeof(bool));
+
+      printf("-> %zd dead CELL: ", dead_cell_num_v.size());
+
+      for (int dead_cell_num : dead_cell_num_v) {
+	cell_num_to_kill[dead_cell_num] = true;
+	printf("%d ", dead_cell_num);}
+
+      printf("\n");
+    }
+
   this->_set_initialized(true);
 }
 
 dpp::chain_module::process_status FLMANU_Killer::process(datatools::things &event)
 {
   snemo::datamodel::calibrated_data & CD = event.grab<snemo::datamodel::calibrated_data>("CD");
-  
-  // for (const auto & tracker_hit : CD.tracker_hits())
+
+  // kill tracker hit
+
   for (auto tracker_hit = CD.tracker_hits().begin(); tracker_hit != CD.tracker_hits().end();)
     {
       unsigned short a_cell_num = 9 * 113 * (*tracker_hit)->get_side();
       a_cell_num += 9 * (*tracker_hit)->get_row();
       a_cell_num += (*tracker_hit)->get_layer();
- 
-      if (cell_num_to_kill[a_cell_num])	
-	CD.tracker_hits().erase(tracker_hit);
+
+      if (cell_num_to_kill[a_cell_num])
+	tracker_hit = CD.tracker_hits().erase(tracker_hit);
       else ++tracker_hit;
     }
 
 
-  // for (const auto & calo_hit : CD.calorimeter_hits())
-  for (auto calo_hit = CD.calorimeter_hits().begin(); calo_hit != CD.calorimeter_hits().end();)
+  snemo::datamodel::CalorimeterHitHdlCollection & CD_calo_hits = CD.calorimeter_hits();
+
+  for (auto calo_hit = CD_calo_hits.begin(); calo_hit != CD_calo_hits.end(); )
     {
       unsigned short an_om_num = -1;
 
@@ -129,7 +141,7 @@ dpp::chain_module::process_status FLMANU_Killer::process(datatools::things &even
 	an_om_num = 520 + 128 + calo_geomid.get(1)*2*16 + calo_geomid.get(2)*16 + calo_geomid.get(3);
 
       if (om_num_to_kill[an_om_num])	
-	CD.calorimeter_hits().erase(calo_hit);
+	calo_hit = CD_calo_hits.erase(calo_hit);
       else ++calo_hit;
     }
 
