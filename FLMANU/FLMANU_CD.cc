@@ -86,13 +86,14 @@ private:
 
   unsigned long long event_id;
 
-  // std::vector<unsigned short>   flag;
   std::vector<unsigned short> calo_om_num;
+  std::vector<unsigned short> calo_flag;
   std::vector<float> calo_energy;
   std::vector<float> calo_energy_u;
   std::vector<float> calo_energy_bc;
   std::vector<float> calo_energy_bcu;
   std::vector<float> calo_time;
+  //
   std::vector<float> calo_energy_true;
   std::vector<float> calo_energy_u_true;
   std::vector<float> calo_energy_bc_true;
@@ -102,13 +103,16 @@ private:
   //
 
   std::vector<unsigned short> tracker_cell_num;
+  std::vector<unsigned short> tracker_flag;
+  std::vector<float> tracker_anode_time;
+  // std::vector<float> tracker_bottom_cathode_time;
+  // std::vector<float> tracker_top_cathode_time;
   std::vector<float> tracker_r;
   std::vector<float> tracker_z;
-  std::vector<float> tracker_anode_time;
-  std::vector<float> tracker_delayed_time;
+  std::vector<float> tracker_drift_time_true; // in relative to avalanche beginning
+  std::vector<float> tracker_anode_time_true; // in absolute
   std::vector<float> tracker_r_true;
   std::vector<float> tracker_z_true;
-  std::vector<float> tracker_time_true;
 
   //
  
@@ -170,7 +174,7 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
 
   ////////////////////////////////
   
-  total_entries = 0; 
+  total_entries = 0;
   selected_entries = 0;
   
   // to allow branching vectors in tree
@@ -185,8 +189,8 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
 
   output_tree->Branch("event_id", &event_id);
 
-  // output_tree->Branch("flag",                  &flag);
   output_tree->Branch("calo.om_num",     &calo_om_num);
+  // output_tree->Branch("calo.flag",       &calo_flag);
   output_tree->Branch("calo.energy",     &calo_energy);
   output_tree->Branch("calo.energy_u",   &calo_energy_u);
   output_tree->Branch("calo.energy_bc",  &calo_energy_bc);
@@ -200,14 +204,17 @@ void FLMANU_CD::initialize (const datatools::properties & myConfig, datatools::s
   output_tree->Branch("calo.time_true",       &calo_time_true);
 
   output_tree->Branch("tracker.cell_num",     &tracker_cell_num);
+  // output_tree->Branch("tracker.flag",         &tracker_flag);
+  output_tree->Branch("tracker.anode_time",   &tracker_anode_time);
+  // output_tree->Branch("tracker.bottom_cathode_time",  &tracker_bottom_cathode_time);
+  // output_tree->Branch("tracker.top_cathode_time",     &tracker_top_cathode_time);
   output_tree->Branch("tracker.r",            &tracker_r);
   output_tree->Branch("tracker.z",            &tracker_z);
-  output_tree->Branch("tracker.anode_time",   &tracker_anode_time);
-  output_tree->Branch("tracker.delayed_time", &tracker_delayed_time);
   //
-  output_tree->Branch("tracker.r_true",       &tracker_r_true);
-  output_tree->Branch("tracker.z_true",       &tracker_z_true);
-  output_tree->Branch("tracker.time_true",    &tracker_time_true);
+  output_tree->Branch("tracker.r_true",          &tracker_r_true);
+  output_tree->Branch("tracker.z_true",          &tracker_z_true);
+  output_tree->Branch("tracker.drift_time_true", &tracker_drift_time_true);
+  output_tree->Branch("tracker.anode_time_true", &tracker_anode_time_true);
 
   this->_set_initialized(true);
 }
@@ -286,10 +293,12 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   double tmp_tracker_r_true[2034];
   double tmp_tracker_z_true[2034];
-  double tmp_tracker_time_true[2034];
+  double tmp_tracker_drift_time_true[2034];
+  double tmp_tracker_anode_time_true[2034];
   memset(tmp_tracker_r_true,    0, 2034*sizeof(double));
   memset(tmp_tracker_z_true,    0, 2034*sizeof(double));
-  memset(tmp_tracker_time_true, 0, 2034*sizeof(double));
+  memset(tmp_tracker_drift_time_true, 0, 2034*sizeof(double));
+  memset(tmp_tracker_anode_time_true, 0, 2034*sizeof(double));
 
   if (SD.has_step_hits("gg"))
     {
@@ -315,65 +324,33 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 	  const double drift_time_2 = (std::exp(r_true_norm/5.35294e-02)-1)/3.13692e+03;
 	  const double drift_time = std::max(drift_time_1, drift_time_2) * CLHEP::microsecond;
 
-	  const double drift_time_true = step_hit_time + drift_time;
+	  const double drift_time_true = drift_time;
+	  const double anode_time_true = step_hit_time + drift_time;
 
-	  if (tmp_tracker_time_true[a_cell_num] == 0)
+	  if (tmp_tracker_drift_time_true[a_cell_num] == 0)
 	    {
+	      // first step hit in this cell
 	      tmp_tracker_r_true[a_cell_num] = r_true;
 	      tmp_tracker_z_true[a_cell_num] = z_true;
-	      tmp_tracker_time_true[a_cell_num] = drift_time_true;
+	      tmp_tracker_drift_time_true[a_cell_num] = drift_time_true;
+	      tmp_tracker_anode_time_true[a_cell_num] = anode_time_true;
 	    }
-	  else if (drift_time_true < tmp_tracker_time_true[a_cell_num])
+	  else if (anode_time_true < tmp_tracker_anode_time_true[a_cell_num])
 	    {
+	      // another step hit in this cell: replace true information
+	      // check if the anode start time is ealier (taking into account
+	      // step hit time + anode drift time = "anode time")
+
 	      // printf("+++ updating drift time %7.1f ns => %7.1f (cell %d in event %d)\n",
-	      // 	     tmp_tracker_time_true[a_cell_num], drift_time_true, a_cell_num, event_id);
+	      // 	     tmp_tracker_anode_time_true[a_cell_num], drift_time_true, a_cell_num, event_id);
 
 	      tmp_tracker_r_true[a_cell_num] = r_true;
 	      tmp_tracker_z_true[a_cell_num] = z_true;
-	      tmp_tracker_time_true[a_cell_num] = drift_time_true;
+	      tmp_tracker_drift_time_true[a_cell_num] = drift_time_true;
+	      tmp_tracker_anode_time_true[a_cell_num] = anode_time_true;
 	    }
 	}
     }
-
-	  // if (step_hit_aux.has_key(r_true_aux_key))
-	  //   {
-	  //     if (tmp_tracker_time_true[a_cell_num] == 0)
-	  // 	{
-	  // 	  tmp_tracker_r_true[a_cell_num] = step_hit_aux.fetch_real(r_true_aux_key);
-	  // 	  tmp_tracker_z_true[a_cell_num] = a_step_hit->get_position_start().z();
-	  // 	  tmp_tracker_time_true[a_cell_num] = a_step_hit->get_time_start();
-	  // 	}
-	  //     else
-	  // 	{
-	  // 	  const double delta_time = std::abs(a_step_hit->get_time_start() - tmp_tracker_time_true[a_cell_num]);
-
-	  // 	  if ((std::abs(delta_time) > 50 * CLHEP::nanosecond) && (std::abs(delta_time) < 0.2 * CLHEP::microsecond))
-	  // 	    printf("+++ delta_time = %7.1f ns (cell %d in event %d)\n", std::abs(delta_time), a_cell_num, event_id);
-
-	  // 	  const double r_true = step_hit_aux.fetch_real(r_true_aux_key);
-
-	  // 	  //         delta_time < -1 us : hit considered to happen before hit previously filled
-	  // 	  // -1 us < delta_time < +1 us : hit considered having same parent ID as the hit previously filled => check r_true
-
-	  // 	  bool update_true_tracker_data = false;
-
-	  // 	  if (delta_time < - 1 * CLHEP::microsecond)
-	  // 	    update_true_tracker_data = true;
-	  // 	  else if (delta_time < -1 * CLHEP::microsecond)
-	  // 	    {
-	  // 	      if (r_true < tmp_tracker_r_true[a_cell_num])
-	  // 		update_true_tracker_data = true;
-	  // 	    }
-
-	  // 	  if (update_true_tracker_data)
-	  // 	    {
-	  // 	      tmp_tracker_r_true[a_cell_num] = step_hit_aux.fetch_real(r_true_aux_key);
-	  // 	      tmp_tracker_z_true[a_cell_num] = a_step_hit->get_position_start().z();
-	  // 	      tmp_tracker_time_true[a_cell_num] = a_step_hit->get_time_start();
-	  // 	    }
-	  // 	}
-	//     }
-	// }
 
   ////////
   // CD //
@@ -406,7 +383,7 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 	  if (tmp_calo_energy[an_om_num] > 0)
 	    printf("*** calibrated calorimeter hit already set for om %d in event_id %d\n", an_om_num, event_id);
 
-	  tmp_calo_energy_true[an_om_num] = calo_hit_aux.fetch_real("edep");
+	  // tmp_calo_energy_true[an_om_num] = calo_hit_aux.fetch_real("edep");
 	  tmp_calo_energy_u_true[an_om_num] = calo_hit_aux.fetch_real("edep_u");
 	  tmp_calo_energy_bc_true[an_om_num] = calo_hit_aux.fetch_real("edep_bc");
 	  tmp_calo_energy_bcu_true[an_om_num] = calo_hit_aux.fetch_real("edep_bcu");
@@ -424,15 +401,17 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   // process calibrated tracker hits
 
+  float tmp_tracker_anode_time[2034];
+  // float tmp_tracker_bottom_cathode_time[2034];
+  // float tmp_tracker_top_cathode_time[2034];
   float tmp_tracker_r[2034];
   float tmp_tracker_z[2034];
-  float tmp_tracker_anode_time[2034];
-  float tmp_tracker_delayed_time[2034];
 
+  memset(tmp_tracker_anode_time,   0, 2034*sizeof(float));
+  // memset(tmp_tracker_bottom_cathode_time, 0, 2034*sizeof(float));
+  // memset(tmp_tracker_top_cathode_time,    0, 2034*sizeof(float));
   memset(tmp_tracker_r,            0, 2034*sizeof(float));
   memset(tmp_tracker_z,            0, 2034*sizeof(float));
-  memset(tmp_tracker_anode_time,   0, 2034*sizeof(float));
-  memset(tmp_tracker_delayed_time, 0, 2034*sizeof(float));
 
   for (const auto & tracker_hit : CD.tracker_hits())
     {
@@ -445,16 +424,15 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
       if (tmp_tracker_r[a_cell_num] > 0)
 	    printf("*** calibrated tracker hit already set for cell %d in event_id %d\n", a_cell_num, event_id);
 
+      tmp_tracker_anode_time[a_cell_num] = tracker_hit->get_anode_time();
       tmp_tracker_r[a_cell_num] = tracker_hit->get_r();
       tmp_tracker_z[a_cell_num] = tracker_hit->get_z();
-      tmp_tracker_anode_time[a_cell_num] = tracker_hit->get_anode_time();
-      tmp_tracker_delayed_time[a_cell_num] = tracker_hit->get_delayed_time();
     }
 
   // reset & fill calo data for output tree
 
   calo_om_num.clear();
-  // calo_flag.clear();
+  calo_flag.clear();
   calo_energy.clear();
   calo_energy_u.clear();
   calo_energy_bc.clear();
@@ -469,7 +447,8 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   for (unsigned short om=0; om<712; om++)
     {
-      if (tmp_calo_energy_true[om] <= 0)
+      // if (tmp_calo_energy_true[om] <= 0)
+      if (tmp_calo_energy[om] <= 0)
 	continue;
 
       if (tmp_calo_energy[om] < energy_cut)
@@ -495,30 +474,33 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
   // reset & fill tracker data for output tree
 
   tracker_cell_num.clear();
+  tracker_flag.clear();
+  tracker_anode_time.clear();
+  // tracker_bottom_cathode_time.clear();
+  // tracker_top_cathode_time.clear();
   tracker_r.clear();
   tracker_z.clear();
-  tracker_anode_time.clear();
-  tracker_delayed_time.clear();
 
+  tracker_drift_time_true.clear();
+  tracker_anode_time_true.clear();
   tracker_r_true.clear();
   tracker_z_true.clear();
-  tracker_time_true.clear();
-
 
   for (unsigned short cell=0; cell<2034; cell++)
     {
-      if (tmp_tracker_r_true[cell] <= 0)
+      // if (tmp_tracker_r_true[cell] <= 0)
+      if (tmp_tracker_r[cell] <= 0)
 	continue;
 
       tracker_cell_num.push_back(cell);
+      tracker_anode_time.push_back(tmp_tracker_anode_time[cell]);
       tracker_r.push_back(tmp_tracker_r[cell]);
       tracker_z.push_back(tmp_tracker_z[cell]);
-      tracker_anode_time.push_back(tmp_tracker_anode_time[cell]);
-      tracker_delayed_time.push_back(tmp_tracker_delayed_time[cell]);
 
+      tracker_drift_time_true.push_back(tmp_tracker_drift_time_true[cell]);
+      tracker_anode_time_true.push_back(tmp_tracker_anode_time_true[cell]);
       tracker_r_true.push_back(tmp_tracker_r_true[cell]);
       tracker_z_true.push_back(tmp_tracker_z_true[cell]);
-      tracker_time_true.push_back(tmp_tracker_time_true[cell]);
 
       nhit_tracker_cd++;
     }
