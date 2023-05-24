@@ -92,13 +92,13 @@ private:
   std::vector<float> calo_energy_u;
   std::vector<float> calo_energy_bc;
   std::vector<float> calo_energy_bcu;
-  std::vector<float> calo_time;
+  std::vector<double> calo_time;
   //
   std::vector<float> calo_energy_true;
   std::vector<float> calo_energy_u_true;
   std::vector<float> calo_energy_bc_true;
   std::vector<float> calo_energy_bcu_true;
-  std::vector<float> calo_time_true;
+  std::vector<double> calo_time_true;
 
   //
 
@@ -243,13 +243,13 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
   float tmp_calo_energy_u_true[712];
   float tmp_calo_energy_bc_true[712];
   float tmp_calo_energy_bcu_true[712];
-  float tmp_calo_time_true[712];
+  double tmp_calo_time_true[712];
 
   memset(tmp_calo_energy_true, 0, 712*sizeof(float));
   memset(tmp_calo_energy_u_true, 0, 712*sizeof(float));
   memset(tmp_calo_energy_bc_true, 0, 712*sizeof(float));
   memset(tmp_calo_energy_bcu_true, 0, 712*sizeof(float));
-  memset(tmp_calo_time_true, 0, 712*sizeof(float));
+  memset(tmp_calo_time_true, 0, 712*sizeof(double));
 
   std::vector<std::string> hit_categories;
   hit_categories.push_back("calo");
@@ -364,13 +364,13 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
   float tmp_calo_energy_u[712];
   float tmp_calo_energy_bc[712];
   float tmp_calo_energy_bcu[712];
-  float tmp_calo_time[712];
+  double tmp_calo_time[712];
 
   memset(tmp_calo_energy,     0, 712*sizeof(float));
   memset(tmp_calo_energy_u,   0, 712*sizeof(float));
   memset(tmp_calo_energy_bc,  0, 712*sizeof(float));
   memset(tmp_calo_energy_bcu, 0, 712*sizeof(float));
-  memset(tmp_calo_time,       0, 712*sizeof(float));
+  memset(tmp_calo_time,       0, 712*sizeof(double));
 
   for (const auto & calo_hit : CD.calorimeter_hits())
     {
@@ -488,8 +488,8 @@ dpp::chain_module::process_status FLMANU_CD::process(datatools::things &event)
 
   for (unsigned short cell=0; cell<2034; cell++)
     {
-      // if (tmp_tracker_r_true[cell] <= 0)
-      if (tmp_tracker_r[cell] <= 0)
+      if (tmp_tracker_r_true[cell] <= 0)
+	// if (tmp_tracker_r[cell] <= 0)
 	continue;
 
       tracker_cell_num.push_back(cell);
